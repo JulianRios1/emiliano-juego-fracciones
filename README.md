@@ -1,6 +1,6 @@
 # Carrera de Fracciones 🍕
 
-Juego para aprender fracciones en el salón. Se proyecta en una pantalla y las **6 filas** compiten como equipos.
+Juego para aprender fracciones en el salón. Se proyecta en una pantalla y las filas del salón compiten como equipos (de 2 a 8 filas, con nombre, cantidad de alumnos e ícono configurables).
 
 ## Niveles
 1. Partes de un todo (pizzas y chocolates)
