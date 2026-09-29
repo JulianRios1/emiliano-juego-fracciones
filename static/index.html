@@ -1,0 +1,733 @@
+<title>Carrera de Fracciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: tablero para proyector. Arriba la pista (una recta 0→meta por fila), abajo la pregunta en grande. En móvil todo se apila. */
+:root {
+  --bg: #E9F0F6;
+  --line: #CFDCE8;
+  --card: #FFFFFF;
+  --soft: #F2F6FA;
+  --ink: #17233B;
+  --muted: #56657F;
+  --accent: #FFB020;
+  --ok: #138A48;
+  --ok-bg: #D8F3E3;
+  --bad: #C8352B;
+  --bad-bg: #FBE0DC;
+  --sauce: #E0532C;
+  --dough: #FFE9B8;
+  --crust: #D8912F;
+  --choco: #6B3A1E;
+  --choco-off: #F3E6DA;
+  --on-team: #FFFFFF;
+  --display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.45;
+}
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-inline: clamp(16px, 3vw, 40px);
+  padding-block: 16px 48px;
+  display: grid;
+  gap: 18px;
+}
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; margin: 0; text-wrap: balance; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+/* ---------- Fracción apilada ---------- */
+.fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; font-family: var(--display); }
+.fr > span:first-child { border-bottom: .09em solid currentColor; padding: 0 .18em .08em; }
+.fr > span:last-child { padding-top: .08em; }
+
+/* ---------- Cabecera ---------- */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand h1 { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 800; }
+.brand .fr { font-size: 1.1rem; background: var(--accent); border: 2px solid var(--ink); border-radius: 12px; padding: 4px 8px; }
+.top-right { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pill { font-weight: 800; background: var(--card); border: 2px solid var(--ink); border-radius: 999px; padding: .35em .9em; font-variant-numeric: tabular-nums; }
+
+.btn { font-weight: 800; border: 2px solid var(--ink); background: var(--card); color: var(--ink); border-radius: 12px; padding: .55em 1em; cursor: pointer; box-shadow: 0 3px 0 var(--ink); transition: transform .08s; }
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.btn.primary { background: var(--accent); font-size: 1.15rem; padding: .7em 1.4em; }
+.btn.small { font-size: .9rem; padding: .4em .8em; }
+
+/* ---------- Pista ---------- */
+.track { background: var(--card); border: 2px solid var(--ink); border-radius: 18px; padding: 10px 12px; display: grid; gap: 4px; }
+.lane { display: grid; grid-template-columns: minmax(0, 10rem) minmax(0, 1fr) 3.4rem; align-items: center; gap: 10px; padding: 4px 8px; border-radius: 12px; }
+.lane.now { background: color-mix(in srgb, var(--team) 16%, transparent); }
+.lane-name { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lane-name small { color: var(--muted); font-weight: 700; }
+.road { position: relative; height: 38px; }
+.road::before { content: ""; position: absolute; left: 19px; right: 19px; top: 50%; height: 4px; transform: translateY(-50%); background: var(--line); border-radius: 4px; }
+.road .ticks { position: absolute; left: 19px; right: 19px; top: 50%; height: 14px; transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 25%); opacity: .35; }
+.road .ticks::after { content: ""; position: absolute; right: -2px; top: 0; bottom: 0; width: 2px; background: var(--muted); }
+.token { position: absolute; top: 50%; left: calc(var(--p) * (100% - 38px)); width: 38px; height: 38px; transform: translateY(-50%);
+  border-radius: 50%; background: var(--team); border: 2px solid var(--ink); display: grid; place-items: center; font-size: 20px;
+  transition: left .8s cubic-bezier(.3, 1.4, .5, 1); }
+.token.pop { animation: pop .6s ease; }
+@keyframes pop { 40% { transform: translateY(-50%) scale(1.35); } }
+.score { font: 800 1.4rem var(--display); text-align: right; font-variant-numeric: tabular-nums; }
+.track-foot { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); font-weight: 700; padding: 0 8px; }
+
+/* ---------- Turno ---------- */
+.banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  background: var(--team, var(--ink)); color: var(--on-team); border: 2px solid var(--ink); border-radius: 16px; padding: 12px 18px; }
+.banner h2 { font-size: clamp(1.3rem, 2.6vw, 2rem); }
+.banner p { margin: 0; font-weight: 700; opacity: .95; }
+.clock { font: 800 1.7rem var(--display); font-variant-numeric: tabular-nums; background: rgba(255,255,255,.2); border-radius: 12px; padding: 2px 14px; min-width: 4.5ch; text-align: center; }
+.clock.hurry { animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { background: rgba(0,0,0,.25); } }
+
+/* ---------- Pregunta ---------- */
+.card { background: var(--card); border: 2px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink);
+  padding: clamp(16px, 2.5vw, 30px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(16px, 3vw, 36px); align-items: center; }
+.q-head { grid-column: 1 / -1; display: grid; gap: 6px; }
+.q-tag { font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.q-prompt { font-size: clamp(1.5rem, 3vw, 2.4rem); font-weight: 800; }
+.visual { display: grid; place-items: center; min-height: 180px; gap: 12px; }
+.pizza { width: min(260px, 70vw); height: auto; }
+.pizza .crust { fill: var(--crust); }
+.pizza .slice { fill: var(--dough); stroke: var(--ink); stroke-width: 2; }
+.pizza .slice.on { fill: var(--sauce); }
+.pizza .pep { fill: #9E2A17; }
+.bar { width: min(400px, 100%); height: auto; }
+.bar .cell { fill: var(--soft); stroke: var(--ink); stroke-width: 2; }
+.bar .cell.on { fill: var(--sauce); }
+.bar .cell.on2 { fill: var(--accent); }
+.bar .cell.off { fill: var(--bad-bg); }
+.bar.choco .cell { fill: var(--choco-off); }
+.bar.choco .cell.on { fill: var(--choco); }
+.bar .x { stroke: var(--bad); stroke-width: 3; }
+.vs, .expr { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .4em; font-size: clamp(3rem, 7vw, 5rem); }
+.vs-q, .op, .qmark { font: 800 1em var(--display); color: var(--muted); }
+.qmark { color: var(--sauce); }
+.items { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; font-size: clamp(1.8rem, 3.5vw, 2.6rem); max-width: 420px; }
+
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.options.three .opt:last-child { grid-column: 1 / -1; }
+.opt { display: flex; align-items: center; gap: 14px; min-height: 96px; padding: 10px 16px; text-align: left;
+  border: 2px solid var(--ink); border-radius: 16px; background: var(--soft); color: var(--ink);
+  font-size: clamp(1.7rem, 3vw, 2.5rem); cursor: pointer; box-shadow: 0 4px 0 var(--ink); transition: transform .08s, background .2s; }
+.opt:not(:disabled):hover { background: var(--dough); }
+.opt:not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.opt:disabled { cursor: default; }
+.opt .letter { font: 800 1.05rem var(--display); width: 2.1em; height: 2.1em; border-radius: 50%; background: var(--ink); color: var(--card); display: grid; place-items: center; flex: none; }
+.opt .eq { font: 800 .75em var(--display); }
+.opt.num { font-family: var(--display); font-weight: 800; }
+.opt.wrong { background: var(--bad-bg); border-color: var(--bad); opacity: .65; }
+.opt.wrong .letter { background: var(--bad); }
+.opt.right { background: var(--ok-bg); border-color: var(--ok); animation: pop2 .5s ease; }
+.opt.right .letter { background: var(--ok); }
+@keyframes pop2 { 40% { transform: scale(1.04); } }
+
+.explain { grid-column: 1 / -1; background: var(--soft); border: 2px dashed var(--line); border-radius: 14px; padding: 14px 18px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; font-size: 1.15rem; }
+.bars { display: grid; gap: 6px; }
+.bars div { display: flex; align-items: center; gap: 10px; font-size: 1.4rem; }
+.explain .bar { width: min(260px, 60vw); }
+.explain p { margin: 0; flex: 1 1 18rem; min-width: 0; }
+.explain .fr { font-size: 1.2em; }
+.actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.marks { display: flex; flex-wrap: wrap; gap: 8px; margin-right: auto; }
+.marks-label { width: 100%; font-weight: 800; color: var(--muted); font-size: .9rem; }
+.chip { border: 2px solid var(--team); border-radius: 999px; padding: .4em .9em; font-weight: 800; background: var(--card); color: var(--ink); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--team); color: var(--on-team); }
+.keys { font-size: .85rem; color: var(--muted); font-weight: 700; margin-right: auto; }
+
+/* ---------- Configuración ---------- */
+.setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.panel { background: var(--card); border: 2px solid var(--ink); border-radius: 20px; padding: clamp(16px, 2.5vw, 26px); display: grid; gap: 14px; }
+.panel h2 { font-size: 1.5rem; }
+.panel .hint { margin: 0; color: var(--muted); }
+.team-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.team-row .dot { width: 40px; height: 40px; border-radius: 50%; background: var(--team); border: 2px solid var(--ink); display: grid; place-items: center; font-size: 20px; }
+.team-row input, select { width: 100%; border: 2px solid var(--ink); border-radius: 10px; padding: .45em .6em; background: var(--soft); }
+.team-row label input { width: 4rem; }
+.team-row label { display: flex; align-items: center; gap: 6px; font-size: .85rem; font-weight: 700; color: var(--muted); }
+.total { font-weight: 800; }
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 8px; }
+.choice { position: relative; display: grid; gap: 2px; border: 2px solid var(--ink); border-radius: 14px; padding: 10px 12px; cursor: pointer; background: var(--soft); }
+.choice input { position: absolute; opacity: 0; }
+.choice b { font-family: var(--display); font-size: 1.1rem; }
+.choice span { font-size: .85rem; color: var(--muted); }
+.choice:has(input:checked) { background: var(--dough); box-shadow: 0 3px 0 var(--ink); }
+.choice:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: grid; gap: 4px; font-weight: 800; }
+.start { display: flex; justify-content: flex-end; }
+
+/* ---------- Final ---------- */
+.final { display: grid; gap: 18px; justify-items: center; text-align: center; }
+.final h2 { font-size: clamp(2rem, 5vw, 3.2rem); }
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; width: 100%; max-width: 640px; }
+.step { flex: 1; display: grid; gap: 6px; justify-items: center; }
+.step .block { width: 100%; background: var(--team); color: var(--on-team); border: 2px solid var(--ink); border-radius: 14px 14px 0 0; display: grid; place-items: center; font: 800 2rem var(--display); }
+.step .big { font-size: 2.6rem; }
+.rest { display: grid; gap: 6px; width: 100%; max-width: 480px; }
+.rest div { display: flex; justify-content: space-between; background: var(--card); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 14px; font-weight: 800; }
+
+@media (max-width: 820px) {
+  .card, .setup { grid-template-columns: minmax(0, 1fr); }
+  .lane { grid-template-columns: 2.6rem minmax(0, 1fr) 2.6rem; }
+  .lane-name .n { display: none; }
+  .opt { min-height: 76px; }
+}
+@media (max-width: 460px) {
+  .options { grid-template-columns: minmax(0, 1fr); }
+  .row2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="fr" aria-hidden="true"><span>1</span><span>6</span></span>
+      <h1>Carrera de Fracciones</h1>
+    </div>
+    <div class="top-right">
+      <span class="pill" id="status" hidden></span>
+      <button class="btn small" id="soundBtn" type="button">🔊 Sonido</button>
+      <button class="btn small" id="resetBtn" type="button" hidden>Nueva partida</button>
+    </div>
+  </header>
+
+  <!-- Configuración -->
+  <section id="setup" class="setup">
+    <div class="panel">
+      <h2>Las 6 filas</h2>
+      <p class="hint">Cada fila del salón es un equipo. Cambia los nombres si quieren un nombre propio.</p>
+      <div id="teamInputs" style="display:grid;gap:10px"></div>
+      <p class="total" id="total"></p>
+    </div>
+    <div class="panel">
+      <h2>La partida</h2>
+      <div class="field">Nivel
+        <div class="choices" id="levelChoices"></div>
+      </div>
+      <div class="field">Modo de juego
+        <div class="choices">
+          <label class="choice"><input type="radio" name="mode" id="mode-turnos" value="turnos" checked><b>Por turnos</b><span>Una fila responde. Si falla, rebota a la siguiente.</span></label>
+          <label class="choice"><input type="radio" name="mode" id="mode-todas" value="todas"><b>Todas a la vez</b><span>Cada fila levanta su tarjeta A, B, C o D.</span></label>
+        </div>
+      </div>
+      <div class="row2">
+        <label class="field">Preguntas
+          <select id="rounds"><option value="6">6 (1 por fila)</option><option value="12" selected>12 (2 por fila)</option><option value="18">18 (3 por fila)</option><option value="24">24 (4 por fila)</option></select>
+        </label>
+        <label class="field">Tiempo por pregunta
+          <select id="timer"><option value="20">20 segundos</option><option value="30" selected>30 segundos</option><option value="45">45 segundos</option><option value="0">Sin tiempo</option></select>
+        </label>
+      </div>
+      <div class="start"><button class="btn primary" id="startBtn" type="button">Empezar la carrera</button></div>
+    </div>
+  </section>
+
+  <!-- Juego -->
+  <section id="game" hidden>
+    <div style="display:grid;gap:14px">
+      <div class="track" id="track"></div>
+      <div class="banner" id="banner"></div>
+      <div class="card" id="card"></div>
+    </div>
+  </section>
+
+  <!-- Resultados -->
+  <section id="final" class="final" hidden></section>
+</div>
+
+<script>
+(() => {
+  // ---------- Datos base ----------
+  const TEAMS = [
+    { mascot: '🦊', color: '#D63A2F' },
+    { mascot: '🐢', color: '#C2570A' },
+    { mascot: '🦉', color: '#8F6C00' },
+    { mascot: '🐸', color: '#1E8A43' },
+    { mascot: '🐳', color: '#2566C4' },
+    { mascot: '🦄', color: '#7A3FC6' },
+  ];
+  const DEFAULT_SIZES = [7, 7, 7, 7, 6, 6];
+  const LEVELS = {
+    '1':  { name: 'Partes de un todo', desc: 'Pizzas y chocolates', gens: ['identify'] },
+    '2':  { name: '¿Cuál es mayor?', desc: 'Comparar fracciones', gens: ['identify', 'compare', 'compare'] },
+    '3':  { name: 'Equivalentes', desc: '1/2 = 2/4 y fracción de un grupo', gens: ['equiv', 'ofSet', 'compare'] },
+    '4':  { name: 'Sumar y restar', desc: 'Mismo denominador', gens: ['add', 'add', 'equiv'] },
+    '5':  { name: 'Fracciones heterogéneas', desc: 'Sumar y restar con distinto denominador', gens: ['hetero', 'hetero', 'lcd'] },
+    mix:  { name: 'Mezcla', desc: 'Un poco de todo', gens: ['identify', 'compare', 'equiv', 'ofSet', 'add', 'hetero'] },
+  };
+  const STORE = 'carrera-fracciones-v1';
+  const LETTERS = ['A', 'B', 'C', 'D'];
+
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const same = (a, b, c, d) => a * d === b * c;
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  const lcm = (a, b) => (a * b) / gcd(a, b);
+  // Pares de denominadores distintos con común denominador pequeño (se puede dibujar)
+  const HETERO_PAIRS = [];
+  for (const x of [2, 3, 4, 5, 6, 8]) for (const y of [2, 3, 4, 5, 6, 8]) if (x !== y && lcm(x, y) <= 24) HETERO_PAIRS.push([x, y]);
+  const fr = (n, d) => `<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+
+  // ---------- Dibujos ----------
+  function pizza(n, d) {
+    const cx = 100, cy = 100, r = 86;
+    let s = '';
+    for (let i = 0; i < d; i++) {
+      const a0 = (i / d) * 2 * Math.PI - Math.PI / 2, a1 = ((i + 1) / d) * 2 * Math.PI - Math.PI / 2;
+      const p = (a, rr) => `${(cx + rr * Math.cos(a)).toFixed(2)},${(cy + rr * Math.sin(a)).toFixed(2)}`;
+      s += `<path class="slice${i < n ? ' on' : ''}" d="M${cx},${cy} L${p(a0, r)} A${r},${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${p(a1, r)} Z"/>`;
+      if (i < n) { const m = (a0 + a1) / 2; const [x, y] = p(m, 56).split(','); s += `<circle class="pep" cx="${x}" cy="${y}" r="${d > 6 ? 6 : 9}"/>`; }
+    }
+    return `<svg class="pizza" viewBox="0 0 200 200" role="img" aria-label="Pizza en ${d} partes iguales, ${n} con salsa"><circle class="crust" cx="100" cy="100" r="96"/>${s}</svg>`;
+  }
+  // cls(i) decide el color de cada casilla
+  function bar(d, cls, extra = '') {
+    const w = 300 / d;
+    let s = '';
+    for (let i = 0; i < d; i++) {
+      const c = cls(i);
+      s += `<rect class="cell ${c}" x="${(2 + i * w).toFixed(2)}" y="2" width="${w.toFixed(2)}" height="56"/>`;
+      if (c === 'off') { const x = 2 + i * w; s += `<line class="x" x1="${(x + 6).toFixed(1)}" y1="10" x2="${(x + w - 6).toFixed(1)}" y2="50"/>`; }
+    }
+    return `<svg class="bar ${extra}" viewBox="0 0 304 60" role="img" aria-label="Barra en ${d} partes">${s}</svg>`;
+  }
+  const simpleBar = (n, d, extra) => bar(d, i => (i < n ? 'on' : ''), extra);
+
+  // Opciones de fracción: la correcta + distractores sin repetir ni valer lo mismo
+  function fracOptions(n, d, cands) {
+    const out = [[n, d]], keys = new Set([`${n}/${d}`]);
+    const ok = ([a, b]) => b > 0 && a >= 0 && !keys.has(`${a}/${b}`) && !same(a, b, n, d);
+    const add = c => { out.push(c); keys.add(`${c[0]}/${c[1]}`); };
+    for (const c of shuffle(cands.slice())) { if (out.length >= 4) break; if (ok(c)) add(c); }
+    for (let g = 0; out.length < 4 && g < 300; g++) { const b = pick([2, 3, 4, 5, 6, 8, 10]); const c = [rnd(1, b), b]; if (ok(c)) add(c); }
+    return shuffle(out.map(([a, b]) => ({ html: fr(a, b), correct: a === n && b === d })));
+  }
+  function numOptions(ans, cands, max) {
+    const out = [ans], seen = new Set(out);
+    for (const c of shuffle(cands.slice())) { if (out.length >= 4) break; if (c > 0 && !seen.has(c)) { seen.add(c); out.push(c); } }
+    for (let g = 0; out.length < 4 && g < 300; g++) { const c = rnd(1, max); if (!seen.has(c)) { seen.add(c); out.push(c); } }
+    return shuffle(out.map(v => ({ html: String(v), correct: v === ans, num: true })));
+  }
+
+  // ---------- Generadores de preguntas ----------
+  const GEN = {
+    identify() {
+      const d = pick([2, 3, 4, 5, 6, 8]), n = rnd(1, d - 1), isPizza = Math.random() < 0.6;
+      return {
+        tag: 'Partes de un todo',
+        prompt: `¿Qué parte de ${isPizza ? 'la pizza tiene salsa' : 'la barra de chocolate es oscura'}?`,
+        visual: isPizza ? pizza(n, d) : simpleBar(n, d, 'choco'),
+        options: fracOptions(n, d, [[d - n, d], [n, d + 1], [d, n], [n, d - 1], [n + 1, d]]),
+        explain: `<p>Hay <b>${d}</b> partes iguales (abajo, el denominador) y <b>${n}</b> ${isPizza ? 'tienen salsa' : 'son oscuras'} (arriba, el numerador): ${fr(n, d)}</p>`,
+      };
+    },
+    compare() {
+      let a, b, c, d, tip;
+      const kind = pick(['sameDen', 'sameNum', 'equal', 'mixed']);
+      if (kind === 'sameDen') {
+        b = d = pick([3, 4, 5, 6, 8, 10]); a = rnd(1, b - 1); do { c = rnd(1, d - 1); } while (c === a);
+        tip = 'Mismo denominador: las partes son del mismo tamaño, gana el que tiene <b>más partes</b>.';
+      } else if (kind === 'sameNum') {
+        a = c = rnd(1, 3); b = rnd(a + 1, a + 6); do { d = rnd(a + 1, a + 7); } while (d === b);
+        tip = 'Mismo numerador: mientras <b>más partes</b> cortas, <b>más pequeñas</b> quedan. Gana el denominador menor.';
+      } else if (kind === 'equal') {
+        const [x, y] = pick([[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5]]), k = rnd(2, 3);
+        [a, b, c, d] = Math.random() < 0.5 ? [x, y, x * k, y * k] : [x * k, y * k, x, y];
+        tip = 'Son <b>equivalentes</b>: ocupan exactamente lo mismo de la barra.';
+      } else {
+        do { b = pick([2, 3, 4, 5, 6, 8]); d = pick([2, 3, 4, 5, 6, 8]); a = rnd(1, b - 1); c = rnd(1, d - 1); }
+        while (same(a, b, c, d) || Math.abs(a / b - c / d) < 0.1);
+        tip = 'Mira las barras: gana la que llena <b>más</b>.';
+      }
+      const v = a * d - c * b;
+      return {
+        tag: '¿Cuál es mayor?', prompt: '¿Qué fracción es mayor?', three: true,
+        visual: `<div class="vs">${fr(a, b)}<span class="vs-q">?</span>${fr(c, d)}</div>`,
+        options: [
+          { html: fr(a, b), correct: v > 0 },
+          { html: fr(c, d), correct: v < 0 },
+          { html: '<span class="eq">Son iguales</span>', correct: v === 0 },
+        ],
+        explain: `<div class="bars"><div>${simpleBar(a, b)}${fr(a, b)}</div><div>${simpleBar(c, d)}${fr(c, d)}</div></div><p>${tip}</p>`,
+      };
+    },
+    equiv() {
+      const [a, b] = pick([[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5], [1, 5], [3, 5]]), k = rnd(2, 4);
+      return {
+        tag: 'Fracciones equivalentes', prompt: `¿Qué fracción es igual a ${fr(a, b)}?`,
+        visual: simpleBar(a, b),
+        options: fracOptions(a * k, b * k, [[a + k, b + k], [a * k, b], [a, b * k], [a * k + 1, b * k], [a + 1, b + 1]]),
+        explain: `<div class="bars"><div>${simpleBar(a, b)}${fr(a, b)}</div><div>${simpleBar(a * k, b * k)}${fr(a * k, b * k)}</div></div><p>Multiplica arriba y abajo por <b>${k}</b>. Es el mismo pedazo, cortado en más partes.</p>`,
+      };
+    },
+    ofSet() {
+      const d = pick([2, 3, 4, 5]), g = rnd(2, 4), total = d * g, n = rnd(1, d - 1), ans = g * n;
+      const [icon, word] = pick([['🍎', 'manzanas'], ['⭐', 'estrellas'], ['🍪', 'galletas'], ['⚽', 'balones']]);
+      const groups = Array.from({ length: d }, (_, i) => `<span style="opacity:${i < n ? 1 : .35}">${icon.repeat(g)}</span>`).join(' | ');
+      return {
+        tag: 'Fracción de un grupo', prompt: `¿Cuánto es ${fr(n, d)} de ${total} ${word}?`,
+        visual: `<div class="items" aria-label="${total} ${word}">${icon.repeat(total)}</div>`,
+        options: numOptions(ans, [g, ans + g, total - ans, ans + 1, ans - 1, total], total),
+        explain: `<p>Reparte ${total} en <b>${d}</b> grupos iguales: ${g} en cada uno. Toma <b>${n}</b> ${n === 1 ? 'grupo' : 'grupos'}: ${n} × ${g} = <b>${ans}</b>.<br><span style="font-size:1.4rem">${groups}</span></p>`,
+      };
+    },
+    hetero() {
+      let a, b, c, d, m, A, C, r, sub;
+      do {
+        [b, d] = pick(HETERO_PAIRS); m = lcm(b, d);
+        a = rnd(1, b - 1); c = rnd(1, d - 1); A = a * m / b; C = c * m / d;
+        sub = Math.random() < 0.4;
+        r = sub ? A - C : A + C;
+      } while (sub ? r <= 0 : r > m);
+      const op = sub ? '−' : '+';
+      const g = gcd(r, m);
+      const pic = sub ? bar(m, i => (i < r ? 'on' : i < A ? 'off' : '')) : bar(m, i => (i < A ? 'on' : i < A + C ? 'on2' : ''));
+      return {
+        tag: sub ? 'Restar con distinto denominador' : 'Sumar con distinto denominador',
+        prompt: sub ? '¿Cuánto queda?' : '¿Cuánto es en total?',
+        visual: `<div class="expr">${fr(a, b)}<span class="op">${op}</span>${fr(c, d)}<span class="op">=</span><span class="qmark">?</span></div>`,
+        options: fracOptions(r, m, [[sub ? a - c : a + c, sub ? Math.abs(b - d) : b + d], [sub ? A + C : r, m], [r + 1, m], [r - 1, m], [sub ? a + c : a * c, b * d]]),
+        explain: `<div class="bars"><div>${simpleBar(a, b)}${fr(a, b)}</div><div>${simpleBar(c, d)}${fr(c, d)}</div><div>${pic}${fr(r, m)}</div></div>
+          <p>Los pedazos son de distinto tamaño: primero buscamos un <b>denominador común: ${m}</b>.<br>
+          ${fr(a, b)} = ${fr(A, m)} y ${fr(c, d)} = ${fr(C, m)}.<br>
+          Ahora sí: ${A} ${op} ${C} = ${r} → ${fr(r, m)}${g > 1 ? `, que se simplifica a ${fr(r / g, m / g)}` : ''}.</p>`,
+      };
+    },
+    lcd() {
+      const [b, d] = pick(HETERO_PAIRS), m = lcm(b, d), a = rnd(1, b - 1), c = rnd(1, d - 1);
+      return {
+        tag: 'Denominador común', prompt: `¿Cuál es el menor denominador común de ${fr(a, b)} y ${fr(c, d)}?`,
+        visual: `<div class="bars"><div>${simpleBar(a, b)}</div><div>${simpleBar(c, d)}</div></div>`,
+        options: numOptions(m, [b + d, b * d, Math.max(b, d), m * 2, Math.min(b, d)], 24),
+        explain: `<p>Múltiplos de ${b}: ${Array.from({ length: m / b }, (_, i) => (i + 1) * b).join(', ')}…<br>
+          Múltiplos de ${d}: ${Array.from({ length: m / d }, (_, i) => (i + 1) * d).join(', ')}…<br>
+          El primero que se repite es <b>${m}</b>.</p>`,
+      };
+    },
+    add() {
+      const d = pick([4, 5, 6, 7, 8, 9, 10]), sub = Math.random() < 0.4;
+      let a, b, r, cands;
+      if (sub) { a = rnd(2, d - 1); b = rnd(1, a - 1); r = a - b; cands = [[a + b, d], [r + 1, d], [r - 1, d], [r, d + d], [b, d]]; }
+      else { a = rnd(1, d - 2); b = rnd(1, d - 1 - a); r = a + b; cands = [[a + b, d + d], [r + 1, d], [a * b, d], [r - 1, d]]; }
+      const op = sub ? '−' : '+';
+      const pic = sub ? bar(d, i => (i < r ? 'on' : i < a ? 'off' : '')) : bar(d, i => (i < a ? 'on' : i < a + b ? 'on2' : ''));
+      return {
+        tag: sub ? 'Restar fracciones' : 'Sumar fracciones', prompt: sub ? '¿Cuánto queda?' : '¿Cuánto es en total?',
+        visual: `<div class="expr">${fr(a, d)}<span class="op">${op}</span>${fr(b, d)}<span class="op">=</span><span class="qmark">?</span></div>`,
+        options: fracOptions(r, d, cands),
+        explain: `<div class="bars"><div>${pic}${fr(r, d)}</div></div><p>Mismo denominador: ${sub ? 'restamos' : 'sumamos'} solo los de arriba (${a} ${op} ${b} = ${r}). El de abajo <b>se queda en ${d}</b>.</p>`,
+      };
+    },
+  };
+
+  // ---------- Estado ----------
+  let S = null, timerId = null, soundOn = true, resetArmed = null, lastPop = -1;
+  const load = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* sin almacenamiento */ } };
+  const cfg = load(STORE + '-cfg') || {};
+
+  // ---------- Sonido ----------
+  let actx = null;
+  function beep(ok) {
+    if (!soundOn) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const t = actx.currentTime, notes = ok ? [523, 659, 784] : [300, 220];
+      notes.forEach((f, i) => {
+        const o = actx.createOscillator(), g = actx.createGain(), s = t + i * 0.12;
+        o.type = ok ? 'triangle' : 'square'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(ok ? 0.25 : 0.08, s + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, s + 0.22);
+        o.connect(g).connect(actx.destination); o.start(s); o.stop(s + 0.25);
+      });
+    } catch (e) { /* sin audio */ }
+  }
+
+  // ---------- Configuración ----------
+  function buildSetup() {
+    const names = cfg.names || [], sizes = cfg.sizes || DEFAULT_SIZES;
+    $('#teamInputs').innerHTML = TEAMS.map((t, i) => `
+      <div class="team-row" style="--team:${t.color}">
+        <span class="dot" aria-hidden="true">${t.mascot}</span>
+        <input id="name-${i}" type="text" maxlength="18" value="${esc(names[i] || 'Fila ' + (i + 1))}" aria-label="Nombre de la fila ${i + 1}">
+        <label>Alumnos <input id="size-${i}" type="number" min="1" max="15" value="${sizes[i] || 6}"></label>
+      </div>`).join('');
+    $('#levelChoices').innerHTML = Object.entries(LEVELS).map(([k, l]) => `
+      <label class="choice"><input type="radio" name="level" id="level-${k}" value="${k}" ${k === (cfg.level || '1') ? 'checked' : ''}>
+      <b>${k === 'mix' ? '' : 'Nivel ' + k + ': '}${l.name}</b><span>${l.desc}</span></label>`).join('');
+    if (cfg.mode) $('#mode-' + cfg.mode).checked = true;
+    if (cfg.rounds) $('#rounds').value = cfg.rounds;
+    if (cfg.timer !== undefined) $('#timer').value = cfg.timer;
+    updateTotal();
+  }
+  function updateTotal() {
+    const total = TEAMS.reduce((s, _, i) => s + (parseInt($('#size-' + i).value, 10) || 0), 0);
+    $('#total').textContent = `${total} estudiantes en total`;
+  }
+
+  function startGame() {
+    const names = TEAMS.map((_, i) => $('#name-' + i).value.trim() || 'Fila ' + (i + 1));
+    const sizes = TEAMS.map((_, i) => Math.max(1, parseInt($('#size-' + i).value, 10) || 1));
+    const c = {
+      names, sizes,
+      level: document.querySelector('input[name=level]:checked').value,
+      mode: document.querySelector('input[name=mode]:checked').value,
+      rounds: parseInt($('#rounds').value, 10),
+      timer: parseInt($('#timer').value, 10),
+    };
+    Object.assign(cfg, c);
+    try { localStorage.setItem(STORE + '-cfg', JSON.stringify(cfg)); } catch (e) { /* sin almacenamiento */ }
+    newGame(c);
+  }
+  function newGame(c) {
+    S = {
+      teams: TEAMS.map((t, i) => ({ ...t, name: c.names[i], size: c.sizes[i], score: 0, student: 1 })),
+      level: c.level, mode: c.mode, rounds: c.rounds, timer: c.timer,
+      round: 0, base: 0, finished: false,
+    };
+    nextQuestion();
+  }
+
+  // ---------- Flujo ----------
+  function nextQuestion() {
+    const q = GEN[pick(LEVELS[S.level].gens)]();
+    Object.assign(S, { q, phase: 'ask', active: S.base, tried: [], result: null, marks: S.teams.map(() => false) });
+    startTimer(S.timer);
+    save(); render();
+  }
+  function startTimer(sec) {
+    clearInterval(timerId); timerId = null;
+    S.left = sec;
+    if (!sec) return;
+    timerId = setInterval(() => {
+      S.left--;
+      const el = $('#clock');
+      if (el) { el.textContent = S.left + ' s'; el.classList.toggle('hurry', S.left <= 5); }
+      if (S.left <= 0) { clearInterval(timerId); timerId = null; timeUp(); }
+    }, 1000);
+  }
+  const stopTimer = () => { clearInterval(timerId); timerId = null; };
+
+  function timeUp() {
+    if (S.mode === 'todas') { reveal(); return; }
+    miss();
+  }
+  function miss() {
+    beep(false);
+    if (S.phase === 'ask') {
+      S.phase = 'rebote'; S.active = (S.base + 1) % S.teams.length;
+      startTimer(S.timer ? Math.max(10, Math.round(S.timer * 2 / 3)) : 0);
+    } else { finishTurn({ ok: false }); }
+    save(); render();
+  }
+  function answer(i) {
+    if (!S || S.finished || S.mode !== 'turnos') return;
+    if (S.phase !== 'ask' && S.phase !== 'rebote') return;
+    if (S.tried.includes(i) || !S.q.options[i]) return;
+    if (S.q.options[i].correct) {
+      const pts = S.phase === 'ask' ? 10 : 5;
+      S.teams[S.active].score += pts;
+      beep(true); lastPop = S.active;
+      finishTurn({ ok: true, team: S.active, pts });
+    } else { S.tried.push(i); miss(); return; }
+    save(); render();
+  }
+  function finishTurn(result) {
+    stopTimer();
+    S.phase = 'done'; S.result = result;
+    const t = S.teams[S.base]; t.student = (t.student % t.size) + 1;
+  }
+  function reveal() {
+    if (S.mode !== 'todas' || S.phase !== 'ask') return;
+    stopTimer(); S.phase = 'reveal'; save(); render();
+  }
+  function commitMarks() {
+    let any = false;
+    S.marks.forEach((m, i) => { if (m) { S.teams[i].score += 10; any = true; } });
+    if (any) beep(true);
+    next();
+  }
+  function next() {
+    S.round++;
+    S.base = (S.base + 1) % S.teams.length;
+    if (S.round >= S.rounds) { stopTimer(); S.finished = true; save(); render(); return; }
+    nextQuestion();
+  }
+
+  // ---------- Pintar ----------
+  function goal() {
+    return S.mode === 'todas' ? S.rounds * 10 : Math.ceil(S.rounds / S.teams.length) * 10 + 10;
+  }
+  function renderTrack() {
+    const g = goal(), top = Math.max(g, ...S.teams.map(t => t.score));
+    $('#track').innerHTML = S.teams.map((t, i) => `
+      <div class="lane${!S.finished && (S.mode === 'todas' || i === S.active) ? ' now' : ''}" style="--team:${t.color}">
+        <span class="lane-name">${t.mascot} <span class="n">${esc(t.name)}</span></span>
+        <div class="road"><div class="ticks"></div><span class="token${i === lastPop ? ' pop' : ''}" style="--p:${(t.score / top).toFixed(3)}" aria-hidden="true">${t.mascot}</span></div>
+        <span class="score">${t.score}</span>
+      </div>`).join('') + `<div class="track-foot"><span>Salida</span><span>Meta: ${g} puntos 🏁</span></div>`;
+    lastPop = -1;
+  }
+
+  function renderBanner() {
+    const b = $('#banner'), t = S.teams[S.active], q = S.q;
+    const clock = S.timer && (S.phase === 'ask' || S.phase === 'rebote') ? `<span class="clock${S.left <= 5 ? ' hurry' : ''}" id="clock" aria-live="off">${S.left} s</span>` : '';
+    let title, sub, color = t.color;
+    if (S.mode === 'todas') {
+      color = 'var(--ink)';
+      title = S.phase === 'ask' ? '¡Todas las filas responden!' : 'Respuesta';
+      sub = S.phase === 'ask' ? 'Pónganse de acuerdo en la fila y levanten la tarjeta A, B, C o D.' : 'Marca las filas que acertaron. Cada una gana 10 puntos.';
+    } else if (S.phase === 'ask') {
+      title = `Turno de ${t.mascot} ${esc(t.name)}`;
+      sub = `Pasa al frente: alumno ${t.student} de ${t.size}. Vale 10 puntos.`;
+    } else if (S.phase === 'rebote') {
+      title = `¡Rebote! Responde ${t.mascot} ${esc(t.name)}`;
+      sub = 'Cualquiera de la fila puede responder. Vale 5 puntos.';
+    } else if (S.result.ok) {
+      const w = S.teams[S.result.team];
+      color = 'var(--ok)'; title = `¡Muy bien, ${w.mascot} ${esc(w.name)}!`; sub = `+${S.result.pts} puntos`;
+    } else {
+      color = 'var(--muted)'; title = 'Esta vez no salió'; sub = 'Miren la explicación y sigamos.';
+    }
+    b.style.setProperty('--team', color);
+    b.innerHTML = `<div><h2>${title}</h2><p>${sub}</p></div>${clock}`;
+  }
+
+  function renderCard() {
+    const q = S.q, open = S.phase === 'ask' || S.phase === 'rebote';
+    const showAns = S.phase === 'done' || S.phase === 'reveal';
+    const opts = q.options.map((o, i) => {
+      const cls = ['opt', o.num ? 'num' : '', S.tried.includes(i) ? 'wrong' : '', showAns && o.correct ? 'right' : ''].join(' ');
+      const dis = S.mode !== 'turnos' || !open || S.tried.includes(i);
+      return `<button type="button" class="${cls}" data-i="${i}" ${dis ? 'disabled' : ''}><span class="letter">${LETTERS[i]}</span>${o.html}</button>`;
+    }).join('');
+
+    let actions = '';
+    if (S.mode === 'todas' && S.phase === 'ask') {
+      actions = `<span class="keys">Tecla Enter: revelar</span><button class="btn primary" type="button" data-act="reveal">Revelar respuesta</button>`;
+    } else if (S.phase === 'reveal') {
+      actions = `<div class="marks"><span class="marks-label">¿Qué filas acertaron?</span>${S.teams.map((t, i) =>
+        `<button type="button" class="chip" style="--team:${t.color}" data-mark="${i}" aria-pressed="${S.marks[i]}">${t.mascot} ${esc(t.name)}</button>`).join('')}</div>
+        <button class="btn primary" type="button" data-act="commit">${S.round + 1 >= S.rounds ? 'Sumar y ver resultados' : 'Sumar puntos y seguir'}</button>`;
+    } else if (S.phase === 'done') {
+      actions = `<span class="keys">Tecla Enter: seguir</span><button class="btn primary" type="button" data-act="next">${S.round + 1 >= S.rounds ? 'Ver resultados' : 'Siguiente pregunta'}</button>`;
+    } else if (S.mode === 'turnos') {
+      actions = `<span class="keys">Teclas A, B, C, D o 1–4 para responder</span>`;
+    }
+
+    $('#card').innerHTML = `
+      <div class="q-head"><span class="q-tag">${q.tag}</span><h2 class="q-prompt">${q.prompt}</h2></div>
+      <div class="visual">${q.visual}</div>
+      <div class="options${q.three ? ' three' : ''}">${opts}</div>
+      ${showAns ? `<div class="explain">${q.explain}</div>` : ''}
+      <div class="actions">${actions}</div>`;
+  }
+
+  function renderFinal() {
+    const ranked = S.teams.map(t => t).sort((a, b) => b.score - a.score);
+    const heights = [150, 110, 80], order = [1, 0, 2];
+    const podium = order.filter(i => ranked[i]).map(i => {
+      const t = ranked[i];
+      return `<div class="step" style="--team:${t.color}"><span class="big" aria-hidden="true">${t.mascot}</span><b>${esc(t.name)}</b>
+        <div class="block" style="height:${heights[i]}px">${i + 1}°<br><small>${t.score} pts</small></div></div>`;
+    }).join('');
+    const rest = ranked.slice(3).map((t, i) => `<div><span>${i + 4}° ${t.mascot} ${esc(t.name)}</span><span>${t.score} pts</span></div>`).join('');
+    $('#final').innerHTML = `
+      <h2>¡Llegamos a la meta!</h2>
+      <p style="margin:0;font-size:1.2rem">Gana <b>${ranked[0].mascot} ${esc(ranked[0].name)}</b> con ${ranked[0].score} puntos.</p>
+      <div class="podium">${podium}</div>
+      <div class="rest">${rest}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="btn primary" type="button" data-act="again">Jugar otra vez</button>
+        <button class="btn" type="button" data-act="setup">Cambiar configuración</button>
+      </div>`;
+  }
+
+  function render() {
+    $('#setup').hidden = !!S;
+    $('#game').hidden = !S || S.finished;
+    $('#final').hidden = !(S && S.finished);
+    $('#resetBtn').hidden = !S;
+    $('#status').hidden = !S;
+    if (!S) return;
+    $('#status').textContent = S.finished ? LEVELS[S.level].name : `Pregunta ${S.round + 1} / ${S.rounds} · ${LEVELS[S.level].name}`;
+    renderTrack();
+    if (S.finished) { renderFinal(); return; }
+    renderBanner(); renderCard();
+  }
+
+  function toSetup() { stopTimer(); S = null; try { localStorage.removeItem(STORE); } catch (e) { /* nada */ } buildSetup(); render(); }
+
+  // ---------- Eventos ----------
+  document.addEventListener('click', e => {
+    const opt = e.target.closest('.opt[data-i]');
+    if (opt) { answer(+opt.dataset.i); return; }
+    const mark = e.target.closest('[data-mark]');
+    if (mark) { const i = +mark.dataset.mark; S.marks[i] = !S.marks[i]; mark.setAttribute('aria-pressed', S.marks[i]); save(); return; }
+    const act = e.target.closest('[data-act]');
+    if (!act) return;
+    const a = act.dataset.act;
+    if (a === 'reveal') reveal();
+    else if (a === 'commit') commitMarks();
+    else if (a === 'next') next();
+    else if (a === 'again') newGame({ ...cfg, names: S.teams.map(t => t.name), sizes: S.teams.map(t => t.size), level: S.level, mode: S.mode, rounds: S.rounds, timer: S.timer });
+    else if (a === 'setup') toSetup();
+  });
+  $('#startBtn').addEventListener('click', startGame);
+  $('#teamInputs').addEventListener('input', updateTotal);
+  $('#soundBtn').addEventListener('click', () => { soundOn = !soundOn; $('#soundBtn').textContent = soundOn ? '🔊 Sonido' : '🔇 Sin sonido'; });
+  $('#resetBtn').addEventListener('click', () => {
+    const btn = $('#resetBtn');
+    if (resetArmed) { clearTimeout(resetArmed); resetArmed = null; btn.textContent = 'Nueva partida'; toSetup(); return; }
+    btn.textContent = '¿Seguro? Toca otra vez';
+    resetArmed = setTimeout(() => { resetArmed = null; btn.textContent = 'Nueva partida'; }, 3000);
+  });
+  document.addEventListener('keydown', e => {
+    if (!S || S.finished || e.target.closest('input, select, textarea')) return;
+    const k = e.key.toLowerCase();
+    const idx = { a: 0, b: 1, c: 2, d: 3, 1: 0, 2: 1, 3: 2, 4: 3 }[k];
+    if (idx !== undefined) { answer(idx); return; }
+    if (k === 'enter' && !e.target.closest('button')) {
+      if (S.phase === 'done') next();
+      else if (S.mode === 'todas' && S.phase === 'ask') reveal();
+      else if (S.phase === 'reveal') commitMarks();
+      else return;
+      e.preventDefault();
+    }
+  });
+
+  // ---------- Inicio ----------
+  buildSetup();
+  const saved = load(STORE);
+  if (saved && saved.teams && saved.q) {
+    S = saved;
+    if (!S.finished && (S.phase === 'ask' || S.phase === 'rebote')) startTimer(S.timer && S.left > 0 ? S.left : S.timer);
+  }
+  render();
+})();
+</script>
