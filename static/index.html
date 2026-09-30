@@ -121,6 +121,18 @@ button, input, select { font: inherit; color: inherit; }
 .vs, .expr { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .4em; font-size: clamp(3rem, 7vw, 5rem); }
 .vs-q, .op, .qmark { font: 800 1em var(--display); color: var(--muted); }
 .qmark { color: var(--sauce); }
+.nline { width: min(460px, 100%); height: auto; }
+.nl { stroke: var(--ink); stroke-width: 3; }
+.nl-tick { stroke: var(--ink); stroke-width: 2; }
+.nl-tick.big { stroke-width: 4; }
+.nl-lab, .nl-letter { font: 800 20px var(--display); fill: var(--ink); text-anchor: middle; }
+.nl-letter { fill: var(--sauce); }
+.nl-emoji { font-size: 28px; text-anchor: middle; }
+.nl-dot { fill: var(--sauce); stroke: var(--ink); stroke-width: 2; }
+.nl-hop { fill: none; stroke: var(--accent); stroke-width: 3; }
+.minis { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.minis .pizza { width: clamp(64px, 10vw, 100px); }
+.kids { font-size: clamp(1.8rem, 3.5vw, 2.4rem); letter-spacing: 4px; text-align: center; }
 .items { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; font-size: clamp(1.8rem, 3.5vw, 2.6rem); max-width: 420px; }
 
 .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -279,13 +291,21 @@ button, input, select { font: inherit; color: inherit; }
   const DEFAULT_SIZES = [7, 7, 7, 7, 6, 6];
   const defaultRows = () => DEFAULT_SIZES.map((size, i) => ({ name: 'Fila ' + (i + 1), size, mascot: ICONS[i], color: COLORS[i] }));
   const LEVELS = {
-    '1':  { name: 'Partes de un todo', desc: 'Pizzas y chocolates', gens: ['identify'] },
-    '2':  { name: '¿Cuál es mayor?', desc: 'Comparar fracciones', gens: ['identify', 'compare', 'compare'] },
-    '3':  { name: 'Equivalentes', desc: '1/2 = 2/4 y fracción de un grupo', gens: ['equiv', 'ofSet', 'compare'] },
+    '1':  { name: 'Partes de un todo', desc: 'Pizzas, chocolates y recta', gens: ['identify', 'identify', 'line'] },
+    '2':  { name: '¿Cuál es mayor?', desc: 'Comparar y ubicar en la recta', gens: ['identify', 'compare', 'compare', 'lineWhere'] },
+    '3':  { name: 'Equivalentes', desc: '1/2 = 2/4, grupos y repartos', gens: ['equiv', 'ofSet', 'compare', 'share'] },
     '4':  { name: 'Sumar y restar', desc: 'Mismo denominador', gens: ['add', 'add', 'equiv'] },
     '5':  { name: 'Fracciones heterogéneas', desc: 'Sumar y restar con distinto denominador', gens: ['hetero', 'hetero', 'lcd'] },
-    mix:  { name: 'Mezcla', desc: 'Un poco de todo', gens: ['identify', 'compare', 'equiv', 'ofSet', 'add', 'hetero'] },
+    '6':  { name: 'Recta y reparto', desc: 'Ubicar en la recta y repartir en partes iguales', gens: ['line', 'lineWhere', 'share', 'share'] },
+    mix:  { name: 'Mezcla', desc: 'Un poco de todo', gens: ['identify', 'compare', 'equiv', 'ofSet', 'add', 'hetero', 'line', 'lineWhere', 'share'] },
   };
+  // Objetos para "fracción de un grupo": [emoji, plural, es femenino]
+  const ITEMS = [
+    ['🍎', 'manzanas', true], ['🍌', 'bananos', false], ['🍓', 'fresas', true], ['🍊', 'naranjas', true],
+    ['🥭', 'mangos', false], ['🍐', 'peras', true], ['🍋', 'limones', false], ['🥑', 'aguacates', false],
+    ['🍪', 'galletas', true], ['⭐', 'estrellas', true], ['⚽', 'balones', false],
+  ];
+  const KIDS = ['Emiliano', 'Sofía', 'Mateo', 'Valentina', 'Samuel', 'Luciana'];
   const STORE = 'carrera-fracciones-v1';
   const LETTERS = ['A', 'B', 'C', 'D'];
 
@@ -313,6 +333,21 @@ button, input, select { font: inherit; color: inherit; }
       if (i < n) { const m = (a0 + a1) / 2; const [x, y] = p(m, 56).split(','); s += `<circle class="pep" cx="${x}" cy="${y}" r="${d > 6 ? 6 : 9}"/>`; }
     }
     return `<svg class="pizza" viewBox="0 0 200 200" role="img" aria-label="Pizza en ${d} partes iguales, ${n} con salsa"><circle class="crust" cx="100" cy="100" r="96"/>${s}</svg>`;
+  }
+  const wholePizza = () => `<svg class="pizza" viewBox="0 0 200 200" role="img" aria-label="Pizza entera"><circle class="crust" cx="100" cy="100" r="96"/><circle class="slice" cx="100" cy="100" r="86"/></svg>`;
+  // Recta de 0 a 1 en d partes. marks: {k, emoji} o {k, label}; hops dibuja los saltos desde 0
+  function numberLine(d, marks, hops = 0) {
+    const x0 = 30, x1 = 370, y = 70, X = k => (x0 + ((x1 - x0) * k) / d).toFixed(1);
+    let s = `<line class="nl" x1="${x0}" y1="${y}" x2="${x1}" y2="${y}"/>`;
+    for (let k = 0; k <= d; k++) s += `<line class="nl-tick${k === 0 || k === d ? ' big' : ''}" x1="${X(k)}" y1="${y - 10}" x2="${X(k)}" y2="${y + 10}"/>`;
+    for (let h = 0; h < hops; h++) s += `<path class="nl-hop" d="M${X(h)},${y - 6} Q${((+X(h) + +X(h + 1)) / 2).toFixed(1)},${y - 36} ${X(h + 1)},${y - 6}"/>`;
+    s += `<text class="nl-lab" x="${x0}" y="${y + 36}">0</text><text class="nl-lab" x="${x1}" y="${y + 36}">1</text>`;
+    marks.forEach(m => {
+      s += m.emoji
+        ? `<text class="nl-emoji" x="${X(m.k)}" y="${y - 14}">${m.emoji}</text>`
+        : `<circle class="nl-dot" cx="${X(m.k)}" cy="${y}" r="7"/>${m.label ? `<text class="nl-letter" x="${X(m.k)}" y="${y - 18}">${m.label}</text>` : ''}`;
+    });
+    return `<svg class="nline" viewBox="0 0 400 115" role="img" aria-label="Recta numérica de 0 a 1 dividida en ${d} partes iguales">${s}</svg>`;
   }
   // cls(i) decide el color de cada casilla
   function bar(d, cls, extra = '') {
@@ -394,12 +429,50 @@ button, input, select { font: inherit; color: inherit; }
         explain: `<div class="bars"><div>${simpleBar(a, b)}${fr(a, b)}</div><div>${simpleBar(a * k, b * k)}${fr(a * k, b * k)}</div></div><p>Multiplica arriba y abajo por <b>${k}</b>. Es el mismo pedazo, cortado en más partes.</p>`,
       };
     },
+    line() {
+      const d = pick([3, 4, 5, 6, 8, 10]), n = rnd(1, d - 1);
+      const [who, name] = pick([['🐸', 'la rana'], ['🐇', 'el conejo'], ['🦘', 'el canguro']]);
+      return {
+        tag: 'Recta numérica', prompt: `¿En qué fracción cayó ${name}?`,
+        visual: numberLine(d, [{ k: n, emoji: who }]),
+        options: fracOptions(n, d, [[n, d + 1], [n + 1, d], [d - n, d], [n, d - 1], [n - 1, d]]),
+        explain: `${numberLine(d, [{ k: n }], n)}<p>De 0 a 1 hay <b>${d}</b> saltos iguales (cuenta los espacios, no las rayitas). Dio <b>${n}</b> ${n === 1 ? 'salto' : 'saltos'}: ${fr(n, d)}.</p>`,
+      };
+    },
+    lineWhere() {
+      const d = pick([5, 6, 8, 10]), n = rnd(1, d - 1);
+      const ks = [n];
+      for (const k of [n - 1, n + 1, d - n, ...shuffle(Array.from({ length: d - 1 }, (_, i) => i + 1))]) {
+        if (ks.length >= 4) break;
+        if (k >= 1 && k <= d - 1 && !ks.includes(k)) ks.push(k);
+      }
+      ks.sort((a, b) => a - b);
+      return {
+        tag: 'Recta numérica', prompt: `¿En qué punto está ${fr(n, d)}?`,
+        visual: numberLine(d, ks.map((k, i) => ({ k, label: LETTERS[i] }))),
+        options: ks.map((k, i) => ({ html: `<span class="eq">Punto ${LETTERS[i]}</span>`, correct: k === n })),
+        explain: `${numberLine(d, [{ k: n, label: LETTERS[ks.indexOf(n)] }], n)}<p>Divide de 0 a 1 en <b>${d}</b> partes iguales y da <b>${n}</b> ${n === 1 ? 'salto' : 'saltos'} desde el 0.</p>`,
+      };
+    },
+    share() {
+      const q = rnd(2, 6), p = rnd(1, q - 1);
+      return {
+        tag: 'Repartir en partes iguales',
+        prompt: `Hay ${p} ${p === 1 ? 'pizza' : 'pizzas'} para ${q} niños. Si reparten en partes iguales, ¿cuánto le toca a cada uno?`,
+        visual: `<div class="minis">${Array.from({ length: p }, wholePizza).join('')}</div><div class="kids" aria-label="${q} niños">${'🧒'.repeat(q)}</div>`,
+        options: fracOptions(p, q, [[q, p], [1, q], [1, p], [p, p + q], [p - 1, q]]),
+        explain: `<div class="minis">${Array.from({ length: p }, () => pizza(1, q)).join('')}</div><p>Cada pizza se corta en <b>${q}</b> partes y a cada niño le toca ${fr(1, q)} de cada una. Son ${p}: ${p} × ${fr(1, q)} = ${fr(p, q)} de pizza.</p>`,
+      };
+    },
     ofSet() {
       const d = pick([2, 3, 4, 5]), g = rnd(2, 4), total = d * g, n = rnd(1, d - 1), ans = g * n;
-      const [icon, word] = pick([['🍎', 'manzanas'], ['⭐', 'estrellas'], ['🍪', 'galletas'], ['⚽', 'balones']]);
+      const [icon, word, fem] = pick(ITEMS);
       const groups = Array.from({ length: d }, (_, i) => `<span style="opacity:${i < n ? 1 : .35}">${icon.repeat(g)}</span>`).join(' | ');
       return {
-        tag: 'Fracción de un grupo', prompt: `¿Cuánto es ${fr(n, d)} de ${total} ${word}?`,
+        tag: 'Fracción de un grupo',
+        prompt: Math.random() < 0.5
+          ? `¿Cuánto es ${fr(n, d)} de ${total} ${word}?`
+          : `${pick(KIDS)} tiene ${total} ${word} y regala ${fr(n, d)}. ¿${fem ? 'Cuántas' : 'Cuántos'} regala?`,
         visual: `<div class="items" aria-label="${total} ${word}">${icon.repeat(total)}</div>`,
         options: numOptions(ans, [g, ans + g, total - ans, ans + 1, ans - 1, total], total),
         explain: `<p>Reparte ${total} en <b>${d}</b> grupos iguales: ${g} en cada uno. Toma <b>${n}</b> ${n === 1 ? 'grupo' : 'grupos'}: ${n} × ${g} = <b>${ans}</b>.<br><span style="font-size:1.4rem">${groups}</span></p>`,
