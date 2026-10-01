@@ -16,6 +16,13 @@ Juego para aprender fracciones en el salón. Se proyecta en una pantalla y las f
 
 Teclado: `A–D` o `1–4` para responder, `Enter` para seguir.
 
+## En la web
+
+Cada push a `main` publica el juego en GitHub Pages:
+**https://julianrios1.github.io/emiliano-juego-fracciones/**
+
+(Se activa una sola vez en Settings → Pages → Source: **GitHub Actions**.)
+
 ## Correr con Docker
 
 ```bash
