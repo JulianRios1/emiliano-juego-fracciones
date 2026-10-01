@@ -14,6 +14,10 @@ Juego para aprender fracciones en el salón. Se proyecta en una pantalla y las f
 - **Por turnos**: responde una fila (10 pts). Si falla, rebota a la siguiente (5 pts).
 - **Todas a la vez**: cada fila levanta su tarjeta A, B, C o D y el docente marca quién acertó.
 
+## Fin de la partida
+- **Por preguntas**: número fijo de preguntas por fila.
+- **Por puntos**: se juega hasta que una fila llega a la meta (30 a 150 puntos). Si dos filas la pasan empatadas, sigue una pregunta de desempate.
+
 Teclado: `A–D` o `1–4` para responder, `Enter` para seguir.
 
 ## En la web
