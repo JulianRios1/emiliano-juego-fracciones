@@ -3,11 +3,12 @@
 Juego para aprender fracciones en el salón. Se proyecta en una pantalla y las filas del salón compiten como equipos (de 2 a 8 filas, con nombre, cantidad de alumnos e ícono configurables).
 
 ## Niveles
-1. Partes de un todo (pizzas y chocolates)
-2. ¿Cuál es mayor? (comparar)
-3. Equivalentes y fracción de un grupo
+1. Partes de un todo (pizzas, chocolates y recta numérica)
+2. ¿Cuál es mayor? (comparar y ubicar en la recta)
+3. Equivalentes, fracción de un grupo (con frutas) y repartos
 4. Sumar y restar con mismo denominador
 5. Fracciones heterogéneas (distinto denominador y denominador común)
+6. Recta y reparto (ubicar fracciones en la recta y repartir en partes iguales)
 - Mezcla de todo
 
 ## Modos
