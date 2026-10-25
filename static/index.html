@@ -482,7 +482,7 @@ button, input, select { font: inherit; color: inherit; }
         prompt: Math.random() < 0.5
           ? `¿Cuánto es ${fr(n, d)} de ${total} ${word}?`
           : `${pick(KIDS)} tiene ${total} ${word} y regala ${fr(n, d)}. ¿${fem ? 'Cuántas' : 'Cuántos'} regala?`,
-        visual: `<div class="items" aria-label="${total} ${word}">${icon.repeat(total)}</div>`,
+        visual: `<div class="items" aria-label="${total} ${word}">${`<span>${icon}</span>`.repeat(total)}</div>`,
         options: numOptions(ans, [g, ans + g, total - ans, ans + 1, ans - 1, total], total),
         explain: `<p>Reparte ${total} en <b>${d}</b> grupos iguales: ${g} en cada uno. Toma <b>${n}</b> ${n === 1 ? 'grupo' : 'grupos'}: ${n} × ${g} = <b>${ans}</b>.<br><span style="font-size:1.4rem">${groups}</span></p>`,
       };
